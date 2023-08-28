@@ -189,7 +189,7 @@ COPY server/Makefile server/Makefile
 RUN cd server && \
     make gen-server && \
     pip install -r requirements.txt && \
-    pip install ".[bnb, accelerate, quantize]" --no-cache-dir
+    pip install ".[bnb, accelerate, quantize]" ray pandas vllm --no-cache-dir
 
 # Install benchmarker
 COPY --from=builder /usr/src/target/release/text-generation-benchmark /usr/local/bin/text-generation-benchmark
@@ -203,16 +203,3 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
         g++ \
         && rm -rf /var/lib/apt/lists/*
 
-# AWS Sagemaker compatbile image
-FROM base as sagemaker
-
-COPY sagemaker-entrypoint.sh entrypoint.sh
-RUN chmod +x entrypoint.sh
-
-ENTRYPOINT ["./entrypoint.sh"]
-
-# Final image
-FROM base
-
-ENTRYPOINT ["text-generation-launcher"]
-CMD ["--json-output"]
