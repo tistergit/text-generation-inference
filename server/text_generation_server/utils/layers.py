@@ -18,13 +18,20 @@ from accelerate import init_empty_weights
 
 from text_generation_server.utils.gptq.quant_linear import QuantLinear
 
-HAS_EXLLAMA = True
+try:
+    major, _minor = torch.cuda.get_device_capability()
+except Exception:
+    major = 1
+HAS_EXLLAMA = False
+CAN_EXLLAMA = major >= 8
 if os.getenv("DISABLE_EXLLAMA") == "True":
     HAS_EXLLAMA = False
-try:
-    from text_generation_server.utils.gptq.exllama import Ex4bitLinear
-except ImportError:
-    HAS_EXLLAMA = False
+elif CAN_EXLLAMA:
+        try:
+            from text_generation_server.utils.gptq.exllama import Ex4bitLinear
+            HAS_EXLLAMA = True
+        except ImportError:
+            pass
 
 from typing import Optional
 
@@ -324,6 +331,19 @@ class TensorParallelHead(SuperLayer):
 
 
 class TensorParallelColumnLinear(SuperLayer):
+    @classmethod
+    def load_qkv(cls, config, prefix: str, weights, bias: bool):
+        """Specific method when the QKV was joined after the fact"""
+        weight = weights.get_weights_col_packed_qkv(
+            prefix, quantize=config.quantize
+        )
+        if bias:
+            raise NotImplementedError("packed_qkv only implemented for baichuan")
+        else:
+            bias = None
+        linear = get_linear(weight, bias, config.quantize)
+        return cls(linear)
+
     @classmethod
     def load(cls, config, prefix: str, weights, bias: bool):
         return cls.load_multi(config, [prefix], weights, bias, dim=0)
