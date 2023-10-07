@@ -337,7 +337,7 @@ class HeterogeneousSampling:
 
 
 def batch_top_tokens(
-    top_n_tokens: list[int], top_n_tokens_tensor: torch.Tensor, logprobs: torch.Tensor
+    top_n_tokens: List[int], top_n_tokens_tensor: torch.Tensor, logprobs: torch.Tensor
 ) -> Tuple[List[List[int]], List[List[float]]]:
     """Find the top n most likely tokens for a batch of generations.
 
@@ -363,7 +363,7 @@ def batch_top_tokens(
     # Find the new "fuzzy" top n values
     top_n_indices = (logprobs >= nth_highest).nonzero()
     _, top_n_ishes = torch.unique_consecutive(top_n_indices[:, 0], return_counts=True)
- 
+
     k = 1 if top_n_ishes.numel() == 0 else top_n_ishes.max()
     # Take a new topk for these new max n values
     top_k = torch.topk(logprobs, k=k, dim=1, sorted=True)

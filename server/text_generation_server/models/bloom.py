@@ -51,7 +51,7 @@ class BLOOMSharded(CausalLM):
             dtype = torch.float16 if dtype is None else dtype
         else:
             device = torch.device("cpu")
-            dtype = torch.float32
+            dtype = torch.float32 if dtype is None else dtype
 
         tokenizer = AutoTokenizer.from_pretrained(
             model_id,
@@ -74,7 +74,7 @@ class BLOOMSharded(CausalLM):
         torch.distributed.barrier(group=self.process_group)
         filenames = weight_files(model_id, revision=revision, extension=".safetensors")
         weights = Weights(
-            filenames, device=device, dtype=dtype, process_group=self.process_group
+            filenames, device=device, dtype=dtype, process_group=self.process_group, prefix="transformer",
         )
         if config.quantize == "gptq":
             weights._set_gptq_params(model_id)
